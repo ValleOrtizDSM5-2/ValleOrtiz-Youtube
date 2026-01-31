@@ -1,0 +1,621 @@
+<!-- subir_video.html -->
+{% extends 'base.html' %}
+
+{% block title %}Subir Video | YouTube Manager{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+    <!-- Header -->
+    <div class="row mb-4">
+        <div class="col">
+            <nav aria-label="breadcrumb">
+                <ol class="breadcrumb">
+                    <li class="breadcrumb-item"><a href="{% url 'youtube_dashboard' %}">Dashboard</a></li>
+                    <li class="breadcrumb-item active">Subir Video</li>
+                </ol>
+            </nav>
+            
+            <div class="d-flex justify-content-between align-items-center">
+                <div>
+                    <h1 class="display-6 mb-2">
+                        <i class="fab fa-youtube text-danger me-2"></i>Subir Video a YouTube
+                    </h1>
+                    <p class="text-muted mb-0">Sube contenido directamente desde Django a tu canal</p>
+                </div>
+                
+                <!-- Estado de la cuenta -->
+                {% if youtube_account %}
+                <div class="text-end">
+                    <div class="d-flex align-items-center">
+                        <div class="me-3">
+                            <div class="d-flex align-items-center">
+                                <img src="{{ youtube_account.foto_perfil }}" 
+                                     class="rounded-circle border border-danger" 
+                                     width="50" height="50"
+                                     alt="{{ youtube_account.nombre_canal }}">
+                                <div class="ms-3">
+                                    <h6 class="mb-0">{{ youtube_account.nombre_canal }}</h6>
+                                    <small class="text-muted">
+                                        {% if youtube_account.esta_autenticado %}
+                                        <span class="text-success">
+                                            <i class="fas fa-check-circle"></i> Conectado
+                                        </span>
+                                        {% else %}
+                                        <span class="text-warning">
+                                            <i class="fas fa-exclamation-triangle"></i> Token expirado
+                                        </span>
+                                        {% endif %}
+                                    </small>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+
+    <div class="row">
+        <!-- Formulario principal -->
+        <div class="col-lg-8 mb-4">
+            <div class="card shadow-lg border-0">
+                <div class="card-header bg-gradient-danger text-white py-3">
+                    <h4 class="mb-0">
+                        <i class="fas fa-upload me-2"></i>Información del Video
+                    </h4>
+                </div>
+                <div class="card-body p-4">
+                    <!-- Formulario de subida -->
+                    <form id="uploadForm" enctype="multipart/form-data">
+                        {% csrf_token %}
+                        
+                        <!-- Sección 1: Título y descripción -->
+                        <div class="mb-4">
+                            <div class="row">
+                                <div class="col-md-12 mb-3">
+                                    <label class="form-label fw-bold">
+                                        <i class="fas fa-heading text-danger me-2"></i>Título del Video
+                                    </label>
+                                    <input type="text" name="titulo" class="form-control" 
+                                           placeholder="Mi increíble video..." required
+                                           maxlength="100">
+                                    <div class="form-text">
+                                        <span id="titleCounter">0/100</span> caracteres
+                                    </div>
+                                </div>
+                                
+                                <div class="col-md-12 mb-3">
+                                    <label class="form-label fw-bold">
+                                        <i class="fas fa-align-left text-danger me-2"></i>Descripción
+                                    </label>
+                                    <textarea name="descripcion" class="form-control" 
+                                              rows="6" placeholder="Describe tu video..."
+                                              maxlength="5000"></textarea>
+                                    <div class="form-text">
+                                        <span id="descCounter">0/5000</span> caracteres. 
+                                        Incluye enlaces y hashtags relevantes.
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <!-- Sección 2: Configuración -->
+                        <div class="row mb-4">
+                            <div class="col-md-6 mb-3">
+                                <label class="form-label fw-bold">
+                                    <i class="fas fa-folder text-danger me-2"></i>Categoría
+                                </label>
+                                <select name="categoria" class="form-select">
+                                    {% for cat in categorias %}
+                                    <option value="{{ cat.id }}">{{ cat.title }}</option>
+                                    {% empty %}
+                                    <option value="22">People & Blogs</option>
+                                    <option value="27" selected>Education</option>
+                                    <option value="28">Science & Technology</option>
+                                    {% endfor %}
+                                </select>
+                            </div>
+                            
+                            <div class="col-md-6 mb-3">
+                                <label class="form-label fw-bold">
+                                    <i class="fas fa-eye text-danger me-2"></i>Privacidad
+                                </label>
+                                <select name="privacidad" class="form-select">
+                                    <option value="private">Privado</option>
+                                    <option value="unlisted">No listado</option>
+                                    <option value="public">Público</option>
+                                </select>
+                            </div>
+                        </div>
+                        
+                        <!-- Sección 3: Archivo -->
+                        <div class="mb-4">
+                            <label class="form-label fw-bold">
+                                <i class="fas fa-video text-danger me-2"></i>Archivo de Video
+                            </label>
+                            
+                            <!-- Dropzone para archivos -->
+                            <div class="border-dashed p-5 text-center rounded-3 bg-light mb-3" 
+                                 id="dropzone" 
+                                 style="border: 2px dashed #dee2e6; cursor: pointer;">
+                                <i class="fas fa-cloud-upload-alt fa-3x text-muted mb-3"></i>
+                                <h5 class="text-muted">Arrastra y suelta tu video aquí</h5>
+                                <p class="text-muted mb-3">o haz clic para seleccionar</p>
+                                <input type="file" name="video_file" id="videoFile" 
+                                       class="d-none" accept="video/*" required>
+                                <button type="button" class="btn btn-outline-danger" 
+                                        onclick="document.getElementById('videoFile').click()">
+                                    <i class="fas fa-folder-open"></i> Seleccionar Archivo
+                                </button>
+                                <p class="mt-3 mb-0 text-muted small">
+                                    Formatos soportados: {{ formatos_permitidos|join:", " }}
+                                    <br>Máximo: {{ max_size_mb }}MB
+                                </p>
+                            </div>
+                            
+                            <!-- Información del archivo -->
+                            <div id="fileInfo" class="d-none">
+                                <div class="alert alert-info d-flex align-items-center">
+                                    <div class="me-3">
+                                        <i class="fas fa-file-video fa-2x"></i>
+                                    </div>
+                                    <div class="flex-grow-1">
+                                        <h6 class="mb-1" id="fileName"></h6>
+                                        <p class="mb-0" id="fileDetails"></p>
+                                    </div>
+                                    <button type="button" class="btn btn-sm btn-outline-danger" 
+                                            onclick="document.getElementById('uploadForm').reset(); resetFileInfo();">
+                                        <i class="fas fa-times"></i>
+                                    </button>
+                                </div>
+                            </div>
+                            
+                            <!-- Preview del video -->
+                            <div id="videoPreview" class="d-none mt-3">
+                                <div class="card">
+                                    <div class="card-header bg-dark text-white">
+                                        <i class="fas fa-play-circle"></i> Vista Previa
+                                    </div>
+                                    <div class="card-body p-0">
+                                        <video class="w-100" controls id="previewVideo"></video>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <!-- Sección 4: Etiquetas -->
+                        <div class="mb-4">
+                            <label class="form-label fw-bold">
+                                <i class="fas fa-tags text-danger me-2"></i>Etiquetas
+                            </label>
+                            <input type="text" name="etiquetas" class="form-control" 
+                                   placeholder="django, python, tutorial, web development">
+                            <div class="form-text">
+                                Separa las etiquetas con comas. Máximo 500 caracteres.
+                            </div>
+                        </div>
+                        
+                        <!-- Botones -->
+                        <div class="d-grid gap-2 d-md-flex justify-content-md-end mt-4">
+                            <a href="{% url 'youtube_dashboard' %}" class="btn btn-outline-secondary me-2">
+                                <i class="fas fa-times"></i> Cancelar
+                            </a>
+                            <button type="submit" class="btn btn-danger btn-lg px-5" id="submitBtn">
+                                <i class="fas fa-upload me-2"></i> Subir a YouTube
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Panel lateral -->
+        <div class="col-lg-4">
+            <!-- Estado de subida -->
+            <div class="card shadow-sm mb-4">
+                <div class="card-header bg-dark text-white">
+                    <h6 class="mb-0"><i class="fas fa-info-circle"></i> Información de Subida</h6>
+                </div>
+                <div class="card-body">
+                    <div id="uploadStatus" class="d-none">
+                        <div class="text-center mb-3">
+                            <div class="spinner-border text-danger" role="status">
+                                <span class="visually-hidden">Subiendo...</span>
+                            </div>
+                        </div>
+                        <h6 class="text-center mb-2">Subiendo video...</h6>
+                        <div class="progress mb-3" style="height: 20px;">
+                            <div id="progressBar" class="progress-bar progress-bar-striped progress-bar-animated bg-danger" 
+                                 role="progressbar" style="width: 0%"></div>
+                        </div>
+                        <p id="statusMessage" class="text-center mb-0 small"></p>
+                    </div>
+                    
+                    <div id="uploadComplete" class="d-none text-center">
+                        <i class="fas fa-check-circle fa-3x text-success mb-3"></i>
+                        <h5>¡Subida completada!</h5>
+                        <p id="completeMessage" class="mb-3"></p>
+                        <a href="#" id="viewVideoBtn" class="btn btn-success btn-sm" target="_blank">
+                            <i class="fab fa-youtube"></i> Ver Video
+                        </a>
+                    </div>
+                    
+                    <div id="uploadInstructions" class="">
+                        <h6>Proceso de subida:</h6>
+                        <ol class="small">
+                            <li>Completa la información del video</li>
+                            <li>Selecciona un archivo de video</li>
+                            <li>Haz clic en "Subir a YouTube"</li>
+                            <li>El video se procesará en segundo plano</li>
+                            <li>Recibirás una notificación cuando termine</li>
+                        </ol>
+                        <div class="alert alert-warning small">
+                            <i class="fas fa-exclamation-triangle"></i>
+                            <strong>Nota:</strong> No cierres esta página durante la subida.
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Videos subidos recientemente -->
+            {% if videos_subidos %}
+            <div class="card shadow-sm">
+                <div class="card-header bg-secondary text-white">
+                    <h6 class="mb-0"><i class="fas fa-history"></i> Subidas Recientes</h6>
+                </div>
+                <div class="card-body p-0">
+                    <div class="list-group list-group-flush">
+                        {% for video in videos_subidos %}
+                        <div class="list-group-item border-0">
+                            <div class="d-flex align-items-center">
+                                <div class="me-3">
+                                    {% if video.estado == 'published' %}
+                                    <span class="badge bg-success">
+                                        <i class="fas fa-check"></i>
+                                    </span>
+                                    {% elif video.estado == 'failed' %}
+                                    <span class="badge bg-danger">
+                                        <i class="fas fa-times"></i>
+                                    </span>
+                                    {% else %}
+                                    <span class="badge bg-warning">
+                                        <i class="fas fa-sync-alt"></i>
+                                    </span>
+                                    {% endif %}
+                                </div>
+                                <div class="flex-grow-1">
+                                    <h6 class="mb-1 small">{{ video.titulo|truncatechars:25 }}</h6>
+                                    <small class="text-muted">
+                                        {{ video.creado|date:"d/m H:i" }} • 
+                                        {{ video.get_estado_display }}
+                                    </small>
+                                </div>
+                                {% if video.youtube_video_id %}
+                                <a href="https://youtube.com/watch?v={{ video.youtube_video_id }}" 
+                                   target="_blank" class="btn btn-sm btn-outline-danger">
+                                    <i class="fab fa-youtube"></i>
+                                </a>
+                                {% endif %}
+                            </div>
+                        </div>
+                        {% endfor %}
+                    </div>
+                    {% if videos_subidos|length > 0 %}
+                    <div class="card-footer text-center">
+                        <a href="{% url 'mis_videos_subidos' %}" class="btn btn-sm btn-outline-dark">
+                            Ver todos los videos
+                        </a>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+
+<script>
+// Variables globales
+let uploadInterval;
+let currentVideoId = null;
+
+// Contadores de caracteres
+document.addEventListener('DOMContentLoaded', function() {
+    // Contador para título
+    const titleInput = document.querySelector('input[name="titulo"]');
+    const titleCounter = document.getElementById('titleCounter');
+    
+    if (titleInput && titleCounter) {
+        titleInput.addEventListener('input', function() {
+            titleCounter.textContent = `${this.value.length}/100`;
+            if (this.value.length > 80) {
+                titleCounter.classList.add('text-warning');
+            } else {
+                titleCounter.classList.remove('text-warning');
+            }
+        });
+    }
+    
+    // Contador para descripción
+    const descInput = document.querySelector('textarea[name="descripcion"]');
+    const descCounter = document.getElementById('descCounter');
+    
+    if (descInput && descCounter) {
+        descInput.addEventListener('input', function() {
+            descCounter.textContent = `${this.value.length}/5000`;
+            if (this.value.length > 4500) {
+                descCounter.classList.add('text-warning');
+            } else {
+                descCounter.classList.remove('text-warning');
+            }
+        });
+    }
+});
+
+// Drag and drop para archivos
+const dropzone = document.getElementById('dropzone');
+const fileInput = document.getElementById('videoFile');
+
+dropzone.addEventListener('dragover', function(e) {
+    e.preventDefault();
+    this.style.borderColor = '#dc3545';
+    this.style.backgroundColor = '#f8f9fa';
+});
+
+dropzone.addEventListener('dragleave', function(e) {
+    e.preventDefault();
+    this.style.borderColor = '#dee2e6';
+    this.style.backgroundColor = '#f8f9fa';
+});
+
+dropzone.addEventListener('drop', function(e) {
+    e.preventDefault();
+    this.style.borderColor = '#dee2e6';
+    this.style.backgroundColor = '#f8f9fa';
+    
+    if (e.dataTransfer.files.length) {
+        fileInput.files = e.dataTransfer.files;
+        handleFileSelect(e.dataTransfer.files[0]);
+    }
+});
+
+fileInput.addEventListener('change', function(e) {
+    if (this.files.length) {
+        handleFileSelect(this.files[0]);
+    }
+});
+
+function handleFileSelect(file) {
+    // Validar archivo
+    const maxSize = {{ max_size_mb }} * 1024 * 1024;
+    const allowedExtensions = {{ formatos_permitidos|safe }};
+    const fileExtension = '.' + file.name.split('.').pop().toLowerCase();
+    
+    if (!allowedExtensions.includes(fileExtension)) {
+        alert(`Formato no permitido. Formatos aceptados: ${allowedExtensions.join(', ')}`);
+        resetFileInfo();
+        return;
+    }
+    
+    if (file.size > maxSize) {
+        alert(`El archivo es demasiado grande. Máximo: {{ max_size_mb }}MB`);
+        resetFileInfo();
+        return;
+    }
+    
+    // Mostrar información del archivo
+    const fileInfo = document.getElementById('fileInfo');
+    const fileName = document.getElementById('fileName');
+    const fileDetails = document.getElementById('fileDetails');
+    
+    fileName.textContent = file.name;
+    fileDetails.textContent = `Tamaño: ${(file.size / (1024 * 1024)).toFixed(2)}MB`;
+    
+    fileInfo.classList.remove('d-none');
+    
+    // Mostrar preview
+    const videoPreview = document.getElementById('videoPreview');
+    const previewVideo = document.getElementById('previewVideo');
+    
+    const url = URL.createObjectURL(file);
+    previewVideo.src = url;
+    videoPreview.classList.remove('d-none');
+}
+
+function resetFileInfo() {
+    document.getElementById('fileInfo').classList.add('d-none');
+    document.getElementById('videoPreview').classList.add('d-none');
+    document.getElementById('previewVideo').src = '';
+    fileInput.value = '';
+}
+
+// Manejar envío del formulario
+document.getElementById('uploadForm').addEventListener('submit', function(e) {
+    e.preventDefault();
+    
+    // Validar archivo
+    if (!fileInput.files.length) {
+        alert('Por favor selecciona un archivo de video');
+        return;
+    }
+    
+    // Confirmar
+    if (!confirm('¿Estás seguro de subir este video a YouTube?')) {
+        return;
+    }
+    
+    // Deshabilitar botón
+    const submitBtn = document.getElementById('submitBtn');
+    submitBtn.disabled = true;
+    submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Subiendo...';
+    
+    // Mostrar estado de subida
+    document.getElementById('uploadInstructions').classList.add('d-none');
+    document.getElementById('uploadStatus').classList.remove('d-none');
+    
+    // Enviar formulario via AJAX
+    const formData = new FormData(this);
+    
+    fetch('{% url "procesar_subida_ajax" %}', {
+        method: 'POST',
+        body: formData
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            currentVideoId = data.video_id;
+            document.getElementById('statusMessage').textContent = 
+                `Video en cola. ID: ${data.video_id}`;
+            
+            // Iniciar seguimiento de estado
+            startTrackingUpload(data.video_id);
+        } else {
+            document.getElementById('statusMessage').textContent = 
+                `Error: ${data.error}`;
+            document.getElementById('progressBar').classList.remove('bg-danger');
+            document.getElementById('progressBar').classList.add('bg-warning');
+            document.getElementById('progressBar').style.width = '100%';
+            
+            // Habilitar botón de nuevo
+            setTimeout(() => {
+                submitBtn.disabled = false;
+                submitBtn.innerHTML = '<i class="fas fa-upload me-2"></i> Subir a YouTube';
+            }, 3000);
+        }
+    })
+    .catch(error => {
+        document.getElementById('statusMessage').textContent = 
+            `Error de conexión: ${error}`;
+        document.getElementById('progressBar').classList.remove('bg-danger');
+        document.getElementById('progressBar').classList.add('bg-warning');
+        document.getElementById('progressBar').style.width = '100%';
+        
+        // Habilitar botón de nuevo
+        setTimeout(() => {
+            submitBtn.disabled = false;
+            submitBtn.innerHTML = '<i class="fas fa-upload me-2"></i> Subir a YouTube';
+        }, 3000);
+    });
+});
+
+// Seguir estado de subida
+function startTrackingUpload(videoId) {
+    let progress = 0;
+    
+    uploadInterval = setInterval(() => {
+        // Simular progreso
+        if (progress < 90) {
+            progress += Math.random() * 10;
+            if (progress > 90) progress = 90;
+            document.getElementById('progressBar').style.width = `${progress}%`;
+        }
+        
+        // Verificar estado real
+        fetch(`/youtube/subir/estado/${videoId}/`)
+            .then(response => response.json())
+            .then(data => {
+                if (data.estado === 'published') {
+                    // Subida completada
+                    clearInterval(uploadInterval);
+                    document.getElementById('progressBar').style.width = '100%';
+                    document.getElementById('statusMessage').textContent = 
+                        '¡Video publicado exitosamente!';
+                    
+                    // Mostrar mensaje de éxito
+                    setTimeout(() => {
+                        document.getElementById('uploadStatus').classList.add('d-none');
+                        document.getElementById('uploadComplete').classList.remove('d-none');
+                        document.getElementById('completeMessage').textContent = 
+                            `Video "${data.titulo}" ha sido publicado.`;
+                        
+                        if (data.youtube_url) {
+                            document.getElementById('viewVideoBtn').href = data.youtube_url;
+                        }
+                    }, 1000);
+                    
+                } else if (data.estado === 'failed') {
+                    // Error en subida
+                    clearInterval(uploadInterval);
+                    document.getElementById('progressBar').style.width = '100%';
+                    document.getElementById('progressBar').classList.remove('bg-danger');
+                    document.getElementById('progressBar').classList.add('bg-warning');
+                    document.getElementById('statusMessage').textContent = 
+                        `Error: ${data.mensaje_error}`;
+                    
+                    // Habilitar botón de nuevo
+                    const submitBtn = document.getElementById('submitBtn');
+                    setTimeout(() => {
+                        submitBtn.disabled = false;
+                        submitBtn.innerHTML = '<i class="fas fa-upload me-2"></i> Subir a YouTube';
+                    }, 3000);
+                    
+                } else {
+                    // Actualizar mensaje
+                    document.getElementById('statusMessage').textContent = 
+                        `Estado: ${data.estado_display}`;
+                }
+            })
+            .catch(error => {
+                console.error('Error al verificar estado:', error);
+            });
+        
+    }, 2000);
+}
+
+// Limpiar intervalo al salir de la página
+window.addEventListener('beforeunload', function() {
+    if (uploadInterval) {
+        clearInterval(uploadInterval);
+    }
+});
+</script>
+
+<style>
+.bg-gradient-danger {
+    background: linear-gradient(135deg, #FF0000 0%, #CC0000 100%) !important;
+}
+
+.border-dashed:hover {
+    border-color: #dc3545 !important;
+    background-color: #fff !important;
+}
+
+.progress-bar-animated {
+    animation: progress-bar-stripes 1s linear infinite;
+}
+
+@keyframes progress-bar-stripes {
+    0% { background-position: 1rem 0; }
+    100% { background-position: 0 0; }
+}
+
+.card {
+    border-radius: 10px;
+    overflow: hidden;
+}
+
+.list-group-item:hover {
+    background-color: #f8f9fa;
+}
+
+.form-control:focus, .form-select:focus {
+    border-color: #dc3545;
+    box-shadow: 0 0 0 0.25rem rgba(220, 53, 69, 0.25);
+}
+
+.btn-danger {
+    background: linear-gradient(135deg, #FF0000 0%, #CC0000 100%);
+    border: none;
+}
+
+.btn-danger:hover {
+    background: linear-gradient(135deg, #CC0000 0%, #990000 100%);
+}
+
+#previewVideo {
+    max-height: 300px;
+    background: #000;
+}
+</style>
+{% endblock %}

@@ -1,0 +1,273 @@
+<!-- templates/videos/mis_videos.html -->
+{% extends 'base.html' %}
+{% load video_filters %}  <!-- ¡AGREGA ESTA LÍNEA! -->
+
+{% block title %}Mis Videos | YouTube Manager{% endblock %}
+
+{% block content %}
+<div class="container mt-5">
+    <!-- Header -->
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <div>
+            <h1><i class="fab fa-youtube text-danger"></i> Mis Videos</h1>
+            <p class="text-muted">Gestiona tu biblioteca de videos de YouTube</p>
+        </div>
+        <a href="{% url 'buscar_videos' %}" class="btn btn-success btn-lg shadow-lg">
+            <i class="fas fa-search"></i> Buscar Más Videos
+        </a>
+    </div>
+
+    <!-- Filtros -->
+    <div class="card shadow-sm mb-4">
+        <div class="card-body">
+            <form method="get" class="row g-3">
+                <div class="col-md-6">
+                    <input type="text" name="buscar" class="form-control" 
+                           placeholder="Buscar por título..." value="{{ search_term }}">
+                </div>
+                <div class="col-md-3">
+                    <select name="categoria" class="form-select">
+                        <option value="">Todas las categorías</option>
+                        {% for id, nombre in categories %}
+                        <option value="{{ id }}" {% if selected_category == id %}selected{% endif %}>
+                            {{ nombre }}
+                        </option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="col-md-3">
+                    <button type="submit" class="btn btn-primary w-100">
+                        <i class="fas fa-search"></i> Buscar
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Estadísticas Generales -->
+    <div class="row mb-4">
+        <div class="col-md-3">
+            <div class="card text-center shadow-sm border-danger">
+                <div class="card-body">
+                    <h6 class="text-muted">Total Videos</h6>
+                    <h2 class="text-danger">{{ videos.paginator.count }}</h2>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card text-center shadow-sm border-primary">
+                <div class="card-body">
+                    <h6 class="text-muted">Total Vistas</h6>
+                    <h2 class="text-primary">{{ total_views|default:0 }}</h2>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card text-center shadow-sm border-success">
+                <div class="card-body">
+                    <h6 class="text-muted">Total Likes</h6>
+                    <h2 class="text-success">{{ total_likes|default:0 }}</h2>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card text-center shadow-sm border-info">
+                <div class="card-body">
+                    <h6 class="text-muted">Comentarios</h6>
+                    <h2 class="text-info">{{ total_comments|default:0 }}</h2>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Tabla de Videos -->
+    <div class="card shadow-lg border-0">
+        <div class="card-header bg-dark text-white">
+            <h5 class="mb-0"><i class="fas fa-list"></i> Lista de Videos</h5>
+        </div>
+        <div class="card-body p-0">
+            {% if videos %}
+            <div class="table-responsive">
+                <table class="table table-hover mb-0">
+                    <thead class="table-light">
+                        <tr>
+                            <th width="120">Thumbnail</th>
+                            <th>Título</th>
+                            <th width="100">Vistas</th>
+                            <th width="100">Likes</th>
+                            <th width="150">Publicado</th>
+                            <th width="150">Acciones</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for video in videos %}
+                        <tr>
+                            <td>
+                                <img src="{{ video.url_thumbnail|default:'/static/default-thumbnail.jpg' }}" 
+                                     class="img-fluid rounded shadow-sm" 
+                                     alt="{{ video.titulo }}" 
+                                     style="max-width: 100px; height: 60px; object-fit: cover;">
+                            </td>
+                            <td>
+                                <strong>{{ video.titulo }}</strong>
+                                <br>
+                                <small class="text-muted">
+                                    <i class="fas fa-user"></i> {{ video.canal_nombre|default:'Canal desconocido' }}
+                                    {% if video.favorito %}
+                                    <span class="badge bg-warning ms-2">
+                                        <i class="fas fa-star"></i> Favorito
+                                    </span>
+                                    {% endif %}
+                                </small>
+                            </td>
+                            <td>
+                                <span class="badge bg-primary">
+                                    <i class="fas fa-eye"></i> {{ video.vistas }}
+                                </span>
+                            </td>
+                            <td>
+                                <span class="badge bg-success">
+                                    <i class="fas fa-thumbs-up"></i> {{ video.likes }}
+                                </span>
+                            </td>
+                            <td>
+                                {% if video.fecha_publicacion %}
+                                    {{ video.fecha_publicacion|date:"d/m/Y" }}
+                                {% else %}
+                                    Fecha desconocida
+                                {% endif %}
+                            </td>
+                            <td>
+                                <a href="{% url 'detalle_video' video.id %}" 
+                                   class="btn btn-sm btn-info">
+                                    <i class="fas fa-eye"></i> Ver
+                                </a>
+                                <a href="https://www.youtube.com/watch?v={{ video.video_id }}" 
+                                   target="_blank" class="btn btn-sm btn-danger">
+                                    <i class="fab fa-youtube"></i> YouTube
+                                </a>
+                                <button class="btn btn-sm btn-outline-warning" 
+                                        onclick="toggleFavorito({{ video.id }})"
+                                        id="fav-btn-{{ video.id }}">
+                                    <i class="fas fa-star"></i>
+                                </button>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+            {% else %}
+            <div class="text-center py-5">
+                <i class="fas fa-video fa-4x text-muted mb-3"></i>
+                <h4 class="text-muted">No hay videos en tu biblioteca</h4>
+                <p>Busca y agrega videos de YouTube a tu colección</p>
+                <a href="{% url 'buscar_videos' %}" class="btn btn-danger">
+                    <i class="fas fa-search"></i> Buscar Videos
+                </a>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+
+    <!-- Paginación -->
+    {% if videos.has_other_pages %}
+    <nav class="mt-4">
+        <ul class="pagination justify-content-center">
+            {% if videos.has_previous %}
+            <li class="page-item">
+                <a class="page-link" href="?page={{ videos.previous_page_number }}&buscar={{ search_term }}&categoria={{ selected_category }}">
+                    Anterior
+                </a>
+            </li>
+            {% endif %}
+            
+            {% for num in videos.paginator.page_range %}
+            {% if num <= videos.number|add:2 and num >= videos.number|add:-2 %}
+            <li class="page-item {% if videos.number == num %}active{% endif %}">
+                <a class="page-link" href="?page={{ num }}&buscar={{ search_term }}&categoria={{ selected_category }}">
+                    {{ num }}
+                </a>
+            </li>
+            {% endif %}
+            {% endfor %}
+            
+            {% if videos.has_next %}
+            <li class="page-item">
+                <a class="page-link" href="?page={{ videos.next_page_number }}&buscar={{ search_term }}&categoria={{ selected_category }}">
+                    Siguiente
+                </a>
+            </li>
+            {% endif %}
+        </ul>
+    </nav>
+    {% endif %}
+</div>
+
+<!-- Scripts para interacción -->
+<script>
+    // Función para marcar/desmarcar como favorito
+    function toggleFavorito(videoId) {
+        const btn = document.getElementById(`fav-btn-${videoId}`);
+        const originalHtml = btn.innerHTML;
+        
+        btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i>';
+        btn.disabled = true;
+        
+        fetch(`/video/favorito/${videoId}/`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': getCookie('csrftoken')
+            }
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                // Recargar la página para ver cambios
+                location.reload();
+            } else {
+                alert('Error: ' + data.error);
+                btn.innerHTML = originalHtml;
+                btn.disabled = false;
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            alert('Error de conexión');
+            btn.innerHTML = originalHtml;
+            btn.disabled = false;
+        });
+    }
+    
+    // Función para obtener cookie CSRF
+    function getCookie(name) {
+        let cookieValue = null;
+        if (document.cookie && document.cookie !== '') {
+            const cookies = document.cookie.split(';');
+            for (let i = 0; i < cookies.length; i++) {
+                const cookie = cookies[i].trim();
+                if (cookie.substring(0, name.length + 1) === (name + '=')) {
+                    cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                    break;
+                }
+            }
+        }
+        return cookieValue;
+    }
+</script>
+
+<style>
+    .table tbody tr:hover {
+        background-color: #f8f9fa;
+    }
+    
+    .badge {
+        font-size: 0.75rem;
+    }
+    
+    .card-header {
+        border-bottom: 2px solid #dc3545;
+    }
+</style>
+{% endblock %}

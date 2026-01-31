@@ -1,0 +1,194 @@
+<!-- templates/videos/mis_videos_subidos.html -->
+{% extends 'base.html' %}
+
+{% block title %}Mis Videos Subidos | YouTube Manager{% endblock %}
+
+{% block content %}
+<div class="container mt-5">
+    <!-- Header -->
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <div>
+            <h1><i class="fab fa-youtube text-danger"></i> Mis Videos Subidos</h1>
+            <p class="text-muted">Gestiona los videos que has subido a YouTube</p>
+        </div>
+        <a href="{% url 'subir_video' %}" class="btn btn-danger btn-lg shadow-lg">
+            <i class="fas fa-plus-circle"></i> Subir Nuevo Video
+        </a>
+    </div>
+
+    <!-- Filtros -->
+    <div class="card shadow-sm mb-4">
+        <div class="card-body">
+            <form method="get" class="row g-3">
+                <div class="col-md-6">
+                    <input type="text" name="buscar" class="form-control" 
+                           placeholder="Buscar por título..." value="{{ request.GET.buscar }}">
+                </div>
+                <div class="col-md-3">
+                    <select name="estado" class="form-select">
+                        <option value="">Todos los estados</option>
+                        <option value="pending">Pendiente</option>
+                        <option value="uploading">Subiendo</option>
+                        <option value="processing">Procesando</option>
+                        <option value="published">Publicado</option>
+                        <option value="failed">Fallido</option>
+                    </select>
+                </div>
+                <div class="col-md-3">
+                    <button type="submit" class="btn btn-primary w-100">
+                        <i class="fas fa-search"></i> Buscar
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Estadísticas -->
+    <div class="row mb-4">
+        <div class="col-md-3">
+            <div class="card text-center shadow-sm border-danger">
+                <div class="card-body">
+                    <h6 class="text-muted">Total Videos</h6>
+                    <h2 class="text-danger">{{ total_videos }}</h2>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card text-center shadow-sm border-success">
+                <div class="card-body">
+                    <h6 class="text-muted">Publicados</h6>
+                    <h2 class="text-success">{{ publicados_count }}</h2>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card text-center shadow-sm border-warning">
+                <div class="card-body">
+                    <h6 class="text-muted">En Proceso</h6>
+                    <h2 class="text-warning">{{ proceso_count }}</h2>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card text-center shadow-sm border-info">
+                <div class="card-body">
+                    <h6 class="text-muted">Tamaño Total</h6>
+                    <h2 class="text-info">{{ total_size|filesizeformat }}</h2>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Tabla de Videos Subidos -->
+    <div class="card shadow-lg border-0">
+        <div class="card-header bg-dark text-white">
+            <h5 class="mb-0"><i class="fas fa-list"></i> Lista de Videos Subidos</h5>
+        </div>
+        <div class="card-body p-0">
+            {% if videos %}
+            <div class="table-responsive">
+                <table class="table table-hover mb-0">
+                    <thead class="table-light">
+                        <tr>
+                            <th>Título</th>
+                            <th width="120">Estado</th>
+                            <th width="120">Tamaño</th>
+                            <th width="150">Fecha</th>
+                            <th width="200">Acciones</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for video in videos %}
+                        <tr>
+                            <td>
+                                <strong>{{ video.titulo }}</strong>
+                                <br>
+                                <small class="text-muted">
+                                    <i class="fas fa-user"></i> {{ video.youtube_account.nombre_canal }}
+                                </small>
+                            </td>
+                            <td>
+                                {% if video.estado == 'published' %}
+                                <span class="badge bg-success">
+                                    <i class="fas fa-check-circle"></i> Publicado
+                                </span>
+                                {% elif video.estado == 'processing' %}
+                                <span class="badge bg-warning">
+                                    <i class="fas fa-sync-alt fa-spin"></i> Procesando
+                                </span>
+                                {% elif video.estado == 'uploading' %}
+                                <span class="badge bg-info">
+                                    <i class="fas fa-upload"></i> Subiendo
+                                </span>
+                                {% elif video.estado == 'pending' %}
+                                <span class="badge bg-secondary">
+                                    <i class="fas fa-clock"></i> Pendiente
+                                </span>
+                                {% elif video.estado == 'failed' %}
+                                <span class="badge bg-danger">
+                                    <i class="fas fa-times-circle"></i> Fallido
+                                </span>
+                                {% endif %}
+                            </td>
+                            <td>
+                                <small class="text-muted">
+                                    {{ video.archivo_size|filesizeformat }}
+                                </small>
+                            </td>
+                            <td>{{ video.creado|date:"d/m/Y H:i" }}</td>
+                            <td>
+                                {% if video.youtube_video_id %}
+                                <a href="https://www.youtube.com/watch?v={{ video.youtube_video_id }}" 
+                                   target="_blank" class="btn btn-sm btn-danger">
+                                    <i class="fab fa-youtube"></i> Ver en YouTube
+                                </a>
+                                {% endif %}
+                                <a href="{% url 'estado_subida' video.id %}" 
+                                   class="btn btn-sm btn-info">
+                                    <i class="fas fa-info-circle"></i> Detalles
+                                </a>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+            {% else %}
+            <div class="text-center py-5">
+                <i class="fas fa-cloud-upload-alt fa-4x text-muted mb-3"></i>
+                <h4 class="text-muted">No hay videos subidos</h4>
+                <p>Sube tu primer video a YouTube desde nuestra aplicación</p>
+                <a href="{% url 'subir_video' %}" class="btn btn-danger">
+                    <i class="fas fa-upload"></i> Subir Primer Video
+                </a>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+
+    <!-- Paginación -->
+    {% if videos.has_other_pages %}
+    <nav class="mt-4">
+        <ul class="pagination justify-content-center">
+            {% if videos.has_previous %}
+            <li class="page-item">
+                <a class="page-link" href="?page={{ videos.previous_page_number }}">Anterior</a>
+            </li>
+            {% endif %}
+            
+            {% for num in videos.paginator.page_range %}
+            <li class="page-item {% if videos.number == num %}active{% endif %}">
+                <a class="page-link" href="?page={{ num }}">{{ num }}</a>
+            </li>
+            {% endfor %}
+            
+            {% if videos.has_next %}
+            <li class="page-item">
+                <a class="page-link" href="?page={{ videos.next_page_number }}">Siguiente</a>
+            </li>
+            {% endif %}
+        </ul>
+    </nav>
+    {% endif %}
+</div>
+{% endblock %}

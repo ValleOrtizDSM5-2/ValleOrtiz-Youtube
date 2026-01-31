@@ -1,0 +1,453 @@
+<!-- buscar_videos.html -->
+{% extends 'base.html' %}
+
+{% block title %}Buscar Videos | YouTube Manager{% endblock %}
+
+{% block content %}
+<div class="container-fluid mt-4">
+    <div class="row">
+        <!-- Sidebar de filtros -->
+        <div class="col-md-3">
+            <div class="card shadow-sm mb-4">
+                <div class="card-header bg-danger text-white">
+                    <h5 class="mb-0"><i class="fas fa-filter"></i> Filtros de Búsqueda</h5>
+                </div>
+                <div class="card-body">
+                    <form method="GET" action="{% url 'buscar_videos' %}">
+                        <!-- Término de búsqueda -->
+                        <div class="mb-3">
+                            <label class="form-label fw-bold">¿Qué buscas?</label>
+                            <input type="text" name="q" class="form-control" 
+                                   value="{{ query }}" placeholder="Ej: tutorial django">
+                        </div>
+
+                        <!-- Ordenar por -->
+                        <div class="mb-3">
+                            <label class="form-label fw-bold">Ordenar por</label>
+                            <select name="order" class="form-select">
+                                {% for id, nombre in ordenes %}
+                                <option value="{{ id }}" {% if order == id %}selected{% endif %}>
+                                    {{ nombre }}
+                                </option>
+                                {% endfor %}
+                            </select>
+                        </div>
+
+                        <!-- Duración -->
+                        <div class="mb-3">
+                            <label class="form-label fw-bold">Duración</label>
+                            <select name="duration" class="form-select">
+                                {% for id, nombre in duraciones %}
+                                <option value="{{ id }}" {% if request.GET.duration == id %}selected{% endif %}>
+                                    {{ nombre }}
+                                </option>
+                                {% endfor %}
+                            </select>
+                        </div>
+
+                        <!-- Número de resultados -->
+                        <div class="mb-3">
+                            <label class="form-label fw-bold">Resultados</label>
+                            <input type="number" name="max" class="form-control" 
+                                   min="1" max="50" value="{{ max_results }}">
+                            <small class="text-muted">Máx. 50 resultados</small>
+                        </div>
+
+                        <!-- Botones -->
+                        <div class="d-grid gap-2">
+                            <button type="submit" class="btn btn-danger">
+                                <i class="fas fa-search"></i> Buscar Videos
+                            </button>
+                            <a href="{% url 'buscar_videos' %}" class="btn btn-outline-secondary">
+                                <i class="fas fa-redo"></i> Limpiar Filtros
+                            </a>
+                        </div>
+                    </form>
+                </div>
+            </div>
+
+            <!-- Historial de búsquedas -->
+            {% if busquedas_recientes %}
+            <div class="card shadow-sm">
+                <div class="card-header bg-dark text-white">
+                    <h6 class="mb-0"><i class="fas fa-history"></i> Búsquedas Recientes</h6>
+                </div>
+                <div class="card-body p-2">
+                    <div class="list-group list-group-flush">
+                        {% for busqueda in busquedas_recientes %}
+                        <a href="{% url 'buscar_videos' %}?q={{ busqueda.query|urlencode }}" 
+                           class="list-group-item list-group-item-action border-0 py-2">
+                            <small>
+                                <i class="fas fa-search text-muted me-2"></i>
+                                {{ busqueda.query|truncatechars:20 }}
+                                <span class="badge bg-secondary float-end">{{ busqueda.resultado_count }}</span>
+                            </small>
+                        </a>
+                        {% endfor %}
+                    </div>
+                </div>
+            </div>
+            {% endif %}
+        </div>
+
+        <!-- Contenido principal -->
+        <div class="col-md-9">
+            <!-- Header -->
+            <div class="card shadow-sm mb-4">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <div>
+                            <h2 class="mb-1"><i class="fab fa-youtube text-danger"></i> Buscar Videos en YouTube</h2>
+                            <p class="text-muted mb-0">Encuentra contenido usando la API de YouTube</p>
+                        </div>
+                        {% if youtube_account %}
+                        <div class="text-end">
+                            <div class="d-flex align-items-center">
+                                <img src="{{ youtube_account.foto_perfil }}" alt="Perfil" 
+                                     class="rounded-circle me-2" width="40" height="40">
+                                <div>
+                                    <small class="d-block text-muted">Conectado como</small>
+                                    <strong>{{ youtube_account.nombre_canal }}</strong>
+                                </div>
+                            </div>
+                        </div>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+
+            <!-- Resultados o mensaje inicial -->
+            {% if query %}
+                <!-- Estadísticas de búsqueda -->
+                <div class="alert alert-info mb-4">
+                    <div class="row">
+                        <div class="col">
+                            <i class="fas fa-search me-2"></i>
+                            <strong>Búsqueda:</strong> "{{ query }}"
+                        </div>
+                        <div class="col">
+                            <i class="fas fa-filter me-2"></i>
+                            <strong>Orden:</strong> {{ order }}
+                        </div>
+                        <div class="col">
+                            <i class="fas fa-video me-2"></i>
+                            <strong>Resultados:</strong> {{ videos|length }}
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Grid de videos -->
+                {% if videos %}
+                    <div class="row row-cols-1 row-cols-md-2 row-cols-lg-3 g-4">
+                        {% for video in videos %}
+                        <div class="col">
+                            <div class="card video-card h-100 shadow-sm border-0">
+                                <!-- Thumbnail -->
+                                <div class="position-relative">
+                                    <img src="{{ video.snippet.thumbnails.medium.url }}" 
+                                         class="card-img-top" 
+                                         alt="{{ video.snippet.title }}"
+                                         style="height: 180px; object-fit: cover;">
+                                    
+                                    <!-- Indicador de duración (si estuviera disponible) -->
+                                    <span class="badge bg-dark position-absolute bottom-0 end-0 m-2">
+                                        <i class="fas fa-play"></i>
+                                    </span>
+                                </div>
+                                
+                                <!-- Contenido del card -->
+                                <div class="card-body d-flex flex-column">
+                                    <h6 class="card-title mb-2">
+                                        {{ video.snippet.title|truncatechars:60 }}
+                                    </h6>
+                                    
+                                    <div class="mb-3">
+                                        <small class="text-muted">
+                                            <i class="fas fa-user-circle"></i>
+                                            {{ video.snippet.channelTitle|truncatechars:30 }}
+                                        </small>
+                                    </div>
+                                    
+                                    <div class="mt-auto">
+                                        <small class="text-muted d-block mb-2">
+                                            <i class="far fa-calendar"></i>
+                                            {{ video.snippet.publishedAt|slice:":10" }}
+                                        </small>
+                                        
+                                        <div class="d-flex justify-content-between">
+    <a href="https://youtube.com/watch?v={{ video.id.videoId }}" 
+       class="btn btn-sm btn-outline-danger" target="_blank">
+        <i class="fab fa-youtube"></i> Ver en YouTube
+    </a>
+    
+    <div class="btn-group">
+        <button class="btn btn-sm btn-outline-secondary"
+                onclick="copiarEnlace('{{ video.id.videoId }}')">
+            <i class="fas fa-link"></i> Copiar ID
+        </button>
+        
+        <!-- Botón para guardar video -->
+        <button class="btn btn-sm btn-success"
+                onclick="guardarVideo('{{ video.id.videoId }}', '{{ video.snippet.title|escapejs }}')"
+                id="save-btn-{{ video.id.videoId }}">
+            <i class="fas fa-save"></i> Guardar
+        </button>
+    </div>
+</div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        {% endfor %}
+                    </div>
+
+                    <!-- Paginación (si hubiera) -->
+                    <nav class="mt-4">
+                        <ul class="pagination justify-content-center">
+                            <li class="page-item disabled">
+                                <a class="page-link" href="#">Anterior</a>
+                            </li>
+                            <li class="page-item active"><a class="page-link" href="#">1</a></li>
+                            <li class="page-item disabled">
+                                <a class="page-link" href="#">Siguiente</a>
+                            </li>
+                        </ul>
+                    </nav>
+
+                {% else %}
+                    <!-- Sin resultados -->
+                    <div class="text-center py-5">
+                        <i class="fas fa-search fa-4x text-muted mb-4"></i>
+                        <h4 class="text-muted">No se encontraron videos</h4>
+                        <p class="text-muted">Intenta con otros términos de búsqueda o ajusta los filtros</p>
+                        <a href="{% url 'buscar_videos' %}" class="btn btn-danger mt-3">
+                            <i class="fas fa-redo"></i> Nueva Búsqueda
+                        </a>
+                    </div>
+                {% endif %}
+
+            {% else %}
+                <!-- Estado inicial (sin búsqueda) -->
+                <div class="text-center py-5">
+                    <div class="mb-4">
+                        <i class="fab fa-youtube fa-5x text-danger"></i>
+                        <div class="mt-3">
+                            <i class="fas fa-search fa-3x text-muted"></i>
+                        </div>
+                    </div>
+                    
+                    <h3 class="mb-3">Busca millones de videos en YouTube</h3>
+                    <p class="text-muted mb-4">
+                        Usa la barra de búsqueda para encontrar tutoriales, música, educación y más.
+                        <br>Los resultados se obtienen en tiempo real desde YouTube.
+                    </p>
+                    
+                    <!-- Ejemplos de búsqueda -->
+                    <div class="row mt-4">
+                        <div class="col-md-4 mb-3">
+                            <a href="{% url 'buscar_videos' %}?q=django+tutorial" 
+                               class="btn btn-outline-dark w-100">
+                                <i class="fas fa-code"></i> Django Tutorial
+                            </a>
+                        </div>
+                        <div class="col-md-4 mb-3">
+                            <a href="{% url 'buscar_videos' %}?q=python+programming" 
+                               class="btn btn-outline-dark w-100">
+                                <i class="fab fa-python"></i> Python Programming
+                            </a>
+                        </div>
+                        <div class="col-md-4 mb-3">
+                            <a href="{% url 'buscar_videos' %}?q=web+development" 
+                               class="btn btn-outline-dark w-100">
+                                <i class="fas fa-globe"></i> Web Development
+                            </a>
+                        </div>
+                    </div>
+                </div>
+            {% endif %}
+
+            <!-- Error de API -->
+            {% if error %}
+            <div class="alert alert-danger mt-4">
+                <h5><i class="fas fa-exclamation-triangle"></i> Error en la búsqueda</h5>
+                <p class="mb-0">{{ error }}</p>
+                {% if not youtube_account.esta_autenticado %}
+                <hr>
+                <a href="{% url 'youtube_login' %}" class="btn btn-sm btn-danger">
+                    <i class="fas fa-redo"></i> Reautenticar con YouTube
+                </a>
+                {% endif %}
+            </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+
+<script>
+    // Función para copiar ID del video
+    function copiarEnlace(videoId) {
+        const enlace = `https://youtube.com/watch?v=${videoId}`;
+        navigator.clipboard.writeText(enlace).then(() => {
+            // Mostrar notificación temporal
+            const btn = event.target;
+            const originalText = btn.innerHTML;
+            btn.innerHTML = '<i class="fas fa-check"></i> Copiado!';
+            btn.classList.remove('btn-outline-secondary');
+            btn.classList.add('btn-success');
+            
+            setTimeout(() => {
+                btn.innerHTML = originalText;
+                btn.classList.remove('btn-success');
+                btn.classList.add('btn-outline-secondary');
+            }, 2000);
+        });
+    }
+
+    // Función para guardar video en "Mis Videos"
+    function guardarVideo(videoId, titulo) {
+        const btn = document.getElementById(`save-btn-${videoId}`);
+        const originalText = btn.innerHTML;
+        btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Guardando...';
+        btn.disabled = true;
+        
+        fetch('/videos/guardar/', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': getCookie('csrftoken')
+            },
+            body: JSON.stringify({
+                video_id: videoId,
+                titulo: titulo
+            })
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                btn.innerHTML = '<i class="fas fa-check"></i> Guardado!';
+                btn.classList.remove('btn-success');
+                btn.classList.add('btn-secondary');
+                
+                // Mostrar notificación
+                mostrarNotificacion('Video guardado exitosamente', 'success');
+            } else {
+                btn.innerHTML = originalText;
+                btn.disabled = false;
+                mostrarNotificacion('Error: ' + data.error, 'danger');
+            }
+        })
+        .catch(error => {
+            btn.innerHTML = originalText;
+            btn.disabled = false;
+            mostrarNotificacion('Error de conexión', 'danger');
+            console.error('Error:', error);
+        });
+    }
+
+    // Función para obtener el token CSRF
+    function getCookie(name) {
+        let cookieValue = null;
+        if (document.cookie && document.cookie !== '') {
+            const cookies = document.cookie.split(';');
+            for (let i = 0; i < cookies.length; i++) {
+                const cookie = cookies[i].trim();
+                if (cookie.substring(0, name.length + 1) === (name + '=')) {
+                    cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                    break;
+                }
+            }
+        }
+        return cookieValue;
+    }
+
+    // Función para mostrar notificaciones
+    function mostrarNotificacion(mensaje, tipo) {
+        // Crear elemento de notificación
+        const notificacion = document.createElement('div');
+        notificacion.className = `alert alert-${tipo} alert-dismissible fade show position-fixed`;
+        notificacion.style.cssText = `
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            z-index: 9999;
+            min-width: 300px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.2);
+            animation: slideIn 0.3s ease-out;
+        `;
+        
+        notificacion.innerHTML = `
+            <div class="d-flex align-items-center">
+                <i class="fas ${tipo === 'success' ? 'fa-check-circle' : 'fa-exclamation-triangle'} me-2 fs-4"></i>
+                <div>${mensaje}</div>
+                <button type="button" class="btn-close ms-auto" data-bs-dismiss="alert"></button>
+            </div>
+        `;
+        
+        document.body.appendChild(notificacion);
+        
+        // Remover después de 3 segundos
+        setTimeout(() => {
+            if (notificacion.parentNode) {
+                notificacion.remove();
+            }
+        }, 3000);
+    }
+
+    // Auto-focus en campo de búsqueda
+    document.addEventListener('DOMContentLoaded', function() {
+        const searchInput = document.querySelector('input[name="q"]');
+        if (searchInput && !searchInput.value) {
+            searchInput.focus();
+        }
+    });
+
+    // Actualizar contador de caracteres en tiempo real
+    document.querySelector('input[name="q"]').addEventListener('input', function(e) {
+        const charCount = e.target.value.length;
+        const counter = document.getElementById('charCount');
+        if (counter) {
+            counter.textContent = `${charCount}/100`;
+            
+            if (charCount > 80) {
+                counter.classList.add('text-warning');
+            } else {
+                counter.classList.remove('text-warning');
+            }
+        }
+    });
+</script>
+
+<style>
+    .video-card {
+        transition: transform 0.2s, box-shadow 0.2s;
+        border-radius: 10px;
+        overflow: hidden;
+    }
+    
+    .video-card:hover {
+        transform: translateY(-5px);
+        box-shadow: 0 10px 20px rgba(0,0,0,0.1) !important;
+    }
+    
+    .video-card .card-img-top {
+        transition: transform 0.3s;
+    }
+    
+    .video-card:hover .card-img-top {
+        transform: scale(1.05);
+    }
+    
+    .list-group-item:hover {
+        background-color: #f8f9fa;
+    }
+    
+    .form-control:focus, .form-select:focus {
+        border-color: #dc3545;
+        box-shadow: 0 0 0 0.25rem rgba(220, 53, 69, 0.25);
+    }
+    
+    .badge {
+        font-size: 0.7rem;
+    }
+</style>
+{% endblock %}

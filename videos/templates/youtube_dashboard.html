@@ -1,0 +1,971 @@
+<!-- templates/youtube_dashboard.html -->
+{% extends 'base.html' %}
+
+{% block title %}Dashboard - {{ youtube_account.nombre_canal }}{% endblock %}
+
+{% block extra_css %}
+<style>
+    :root {
+        --youtube-red: #FF0000;
+        --youtube-dark-red: #CC0000;
+        --text-primary: #333;
+        --text-secondary: #666;
+        --bg-light: #f8f9fa;
+        --border-color: #e9ecef;
+    }
+    
+    /* Header del Dashboard */
+    .dashboard-header {
+        background: linear-gradient(135deg, var(--youtube-red) 0%, var(--youtube-dark-red) 100%);
+        color: white;
+        padding: 30px;
+        border-radius: 15px;
+        margin-bottom: 30px;
+        box-shadow: 0 4px 15px rgba(255, 0, 0, 0.2);
+    }
+    
+    .channel-info-container {
+        display: flex;
+        align-items: center;
+        gap: 25px;
+        flex-wrap: wrap;
+    }
+    
+    .channel-avatar {
+        width: 100px;
+        height: 100px;
+        border-radius: 50%;
+        border: 4px solid white;
+        overflow: hidden;
+        background: white;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        flex-shrink: 0;
+    }
+    
+    .channel-avatar img {
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+    }
+    
+    .channel-avatar .avatar-placeholder {
+        font-size: 40px;
+        color: var(--youtube-red);
+    }
+    
+    .channel-text {
+        flex: 1;
+        min-width: 300px;
+    }
+    
+    .channel-text h1 {
+        font-size: 28px;
+        font-weight: 700;
+        margin-bottom: 8px;
+    }
+    
+    .channel-text .channel-email {
+        opacity: 0.9;
+        font-size: 16px;
+        margin-bottom: 15px;
+    }
+    
+    .channel-stats {
+        display: flex;
+        gap: 40px;
+        margin-top: 20px;
+    }
+    
+    .channel-stat {
+        text-align: center;
+    }
+    
+    .channel-stat .number {
+        font-size: 24px;
+        font-weight: 800;
+        display: block;
+        margin-bottom: 5px;
+    }
+    
+    .channel-stat .label {
+        font-size: 14px;
+        opacity: 0.8;
+        text-transform: uppercase;
+        letter-spacing: 1px;
+    }
+    
+    .header-actions {
+        display: flex;
+        gap: 15px;
+        margin-top: 20px;
+        flex-wrap: wrap;
+    }
+    
+    /* Quick Actions Bar */
+    .quick-actions {
+        background: white;
+        border-radius: 15px;
+        padding: 20px;
+        margin-bottom: 30px;
+        box-shadow: 0 4px 15px rgba(0, 0, 0, 0.08);
+        border: 1px solid #f0f0f0;
+    }
+    
+    .quick-actions h3 {
+        color: var(--text-primary);
+        font-size: 18px;
+        font-weight: 600;
+        margin-bottom: 20px;
+        display: flex;
+        align-items: center;
+        gap: 10px;
+    }
+    
+    .quick-actions h3 i {
+        color: var(--youtube-red);
+    }
+    
+    .actions-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+        gap: 20px;
+    }
+    
+    .action-card {
+        background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+        border-radius: 12px;
+        padding: 25px;
+        text-decoration: none;
+        color: var(--text-primary);
+        transition: all 0.3s ease;
+        border: 2px solid transparent;
+        display: flex;
+        align-items: center;
+        gap: 20px;
+    }
+    
+    .action-card:hover {
+        transform: translateY(-5px);
+        box-shadow: 0 8px 25px rgba(255, 0, 0, 0.15);
+        border-color: var(--youtube-red);
+        text-decoration: none;
+        color: var(--text-primary);
+    }
+    
+    .action-icon {
+        width: 60px;
+        height: 60px;
+        background: linear-gradient(135deg, var(--youtube-red) 0%, var(--youtube-dark-red) 100%);
+        border-radius: 12px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        color: white;
+        font-size: 24px;
+        flex-shrink: 0;
+    }
+    
+    .action-content {
+        flex: 1;
+    }
+    
+    .action-title {
+        font-size: 18px;
+        font-weight: 600;
+        margin-bottom: 5px;
+    }
+    
+    .action-description {
+        font-size: 14px;
+        color: var(--text-secondary);
+        line-height: 1.4;
+    }
+    
+    /* Stats Grid */
+    .stats-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+        gap: 25px;
+        margin-bottom: 40px;
+    }
+    
+    .stat-card {
+        background: white;
+        border-radius: 16px;
+        padding: 30px;
+        box-shadow: 0 4px 15px rgba(0, 0, 0, 0.08);
+        transition: transform 0.3s ease, box-shadow 0.3s ease;
+        border: 1px solid #f0f0f0;
+        position: relative;
+        overflow: hidden;
+    }
+    
+    .stat-card::before {
+        content: '';
+        position: absolute;
+        top: 0;
+        left: 0;
+        width: 5px;
+        height: 100%;
+        background: linear-gradient(135deg, var(--youtube-red) 0%, var(--youtube-dark-red) 100%);
+    }
+    
+    .stat-card:hover {
+        transform: translateY(-5px);
+        box-shadow: 0 8px 25px rgba(0, 0, 0, 0.12);
+    }
+    
+    .stat-card h3 {
+        color: var(--text-secondary);
+        font-size: 14px;
+        font-weight: 600;
+        text-transform: uppercase;
+        letter-spacing: 1px;
+        margin-bottom: 20px;
+    }
+    
+    .stat-card .number {
+        font-size: 42px;
+        font-weight: 800;
+        color: var(--youtube-red);
+        margin: 15px 0;
+        line-height: 1;
+    }
+    
+    .trend {
+        font-size: 14px;
+        color: var(--text-secondary);
+        margin-top: 10px;
+    }
+    
+    .trend.positive {
+        color: #28a745;
+    }
+    
+    .trend.negative {
+        color: #dc3545;
+    }
+    
+    /* Videos Section */
+    .videos-section {
+        background: white;
+        border-radius: 16px;
+        padding: 30px;
+        box-shadow: 0 4px 15px rgba(0, 0, 0, 0.08);
+        margin-top: 30px;
+        border: 1px solid #f0f0f0;
+    }
+    
+    .section-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 25px;
+        flex-wrap: wrap;
+        gap: 15px;
+    }
+    
+    .section-header h2 {
+        font-size: 24px;
+        font-weight: 700;
+        color: var(--text-primary);
+        display: flex;
+        align-items: center;
+        gap: 10px;
+    }
+    
+    .section-header h2 i {
+        color: var(--youtube-red);
+    }
+    
+    .section-actions {
+        display: flex;
+        gap: 10px;
+    }
+    
+    /* Video List */
+    .video-list {
+        display: grid;
+        gap: 20px;
+    }
+    
+    .video-item {
+        display: flex;
+        gap: 20px;
+        padding: 20px;
+        background: #f8f9fa;
+        border-radius: 12px;
+        transition: all 0.3s ease;
+        border: 1px solid #e9ecef;
+    }
+    
+    .video-item:hover {
+        background: #e9ecef;
+        transform: translateX(5px);
+    }
+    
+    .video-thumbnail {
+        width: 180px;
+        height: 120px;
+        border-radius: 8px;
+        background: linear-gradient(135deg, #ddd 0%, #bbb 100%);
+        flex-shrink: 0;
+        position: relative;
+        overflow: hidden;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        color: #999;
+        font-size: 14px;
+    }
+    
+    .video-thumbnail img {
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+    }
+    
+    .video-content {
+        flex: 1;
+        display: flex;
+        flex-direction: column;
+        justify-content: space-between;
+    }
+    
+    .video-title {
+        font-size: 18px;
+        font-weight: 600;
+        color: var(--text-primary);
+        margin-bottom: 10px;
+        line-height: 1.4;
+    }
+    
+    .video-description {
+        color: var(--text-secondary);
+        font-size: 14px;
+        line-height: 1.5;
+        margin-bottom: 15px;
+        display: -webkit-box;
+        -webkit-line-clamp: 2;
+        -webkit-box-orient: vertical;
+        overflow: hidden;
+    }
+    
+    .video-stats {
+        display: flex;
+        gap: 20px;
+        color: var(--text-secondary);
+        font-size: 14px;
+    }
+    
+    .video-stat {
+        display: flex;
+        align-items: center;
+        gap: 5px;
+    }
+    
+    .video-actions {
+        display: flex;
+        gap: 10px;
+    }
+    
+    /* Token Status */
+    .token-status {
+        background: white;
+        border-radius: 16px;
+        padding: 25px;
+        margin-bottom: 30px;
+        box-shadow: 0 4px 15px rgba(0, 0, 0, 0.08);
+        border: 1px solid #f0f0f0;
+    }
+    
+    .token-info {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        flex-wrap: wrap;
+        gap: 15px;
+    }
+    
+    .token-indicator {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+    }
+    
+    .token-dot {
+        width: 12px;
+        height: 12px;
+        border-radius: 50%;
+    }
+    
+    .token-dot.valid {
+        background: #28a745;
+        animation: pulse 2s infinite;
+    }
+    
+    .token-dot.expired {
+        background: #dc3545;
+    }
+    
+    @keyframes pulse {
+        0% { opacity: 1; }
+        50% { opacity: 0.5; }
+        100% { opacity: 1; }
+    }
+    
+    /* Empty State */
+    .empty-state {
+        text-align: center;
+        padding: 60px 20px;
+        color: var(--text-secondary);
+    }
+    
+    .empty-state-icon {
+        font-size: 64px;
+        color: #ddd;
+        margin-bottom: 20px;
+        display: block;
+    }
+    
+    .empty-state h3 {
+        font-size: 20px;
+        margin-bottom: 10px;
+        color: var(--text-primary);
+    }
+    
+    /* Loading State */
+    .loading {
+        text-align: center;
+        padding: 40px;
+        color: var(--text-secondary);
+    }
+    
+    .spinner {
+        border: 4px solid #f3f3f3;
+        border-top: 4px solid var(--youtube-red);
+        border-radius: 50%;
+        width: 40px;
+        height: 40px;
+        animation: spin 1s linear infinite;
+        margin: 0 auto 20px;
+    }
+    
+    @keyframes spin {
+        0% { transform: rotate(0deg); }
+        100% { transform: rotate(360deg); }
+    }
+    
+    /* Responsive */
+    @media (max-width: 768px) {
+        .channel-info-container {
+            flex-direction: column;
+            text-align: center;
+        }
+        
+        .channel-text {
+            min-width: auto;
+        }
+        
+        .channel-stats {
+            justify-content: center;
+            flex-wrap: wrap;
+        }
+        
+        .video-item {
+            flex-direction: column;
+        }
+        
+        .video-thumbnail {
+            width: 100%;
+            height: 200px;
+        }
+        
+        .section-header {
+            flex-direction: column;
+            align-items: flex-start;
+        }
+        
+        .actions-grid {
+            grid-template-columns: 1fr;
+        }
+    }
+    
+    @media (max-width: 480px) {
+        .stats-grid {
+            grid-template-columns: 1fr;
+        }
+        
+        .stat-card .number {
+            font-size: 36px;
+        }
+        
+        .channel-stats {
+            flex-direction: column;
+            gap: 15px;
+        }
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <!-- Dashboard Header -->
+    <div class="dashboard-header">
+        <div class="channel-info-container">
+            <div class="channel-avatar">
+                {% if youtube_account.foto_perfil %}
+                    <img src="{{ youtube_account.foto_perfil }}" 
+                         alt="{{ youtube_account.nombre_canal }}">
+                {% else %}
+                    <div class="avatar-placeholder">
+                        <i class="fab fa-youtube"></i>
+                    </div>
+                {% endif %}
+            </div>
+            
+            <div class="channel-text">
+                <h1>{{ youtube_account.nombre_canal }}</h1>
+                {% if youtube_account.email %}
+                <p class="channel-email">{{ youtube_account.email }}</p>
+                {% endif %}
+                
+                <div class="channel-stats">
+                    <div class="channel-stat">
+                        <span class="number">{{ youtube_account.suscriptores|default:"0" }}</span>
+                        <span class="label">Suscriptores</span>
+                    </div>
+                    <div class="channel-stat">
+                        <span class="number">{{ youtube_account.videos_publicados|default:"0" }}</span>
+                        <span class="label">Videos</span>
+                    </div>
+                    <div class="channel-stat">
+                        <span class="number">{{ youtube_account.vistas_totales|default:"0" }}</span>
+                        <span class="label">Vistas</span>
+                    </div>
+                </div>
+                
+                <div class="header-actions">
+                    <a href="{{ youtube_account.get_channel_url }}" 
+                       target="_blank" 
+                       class="btn-youtube">
+                        <i class="fab fa-youtube"></i> Ver Canal en YouTube
+                    </a>
+                    <a href="{% url 'mis_videos' %}" class="btn-youtube">
+        <i class="fas fa-bookmark"></i> Mis Videos Guardados
+    </a>
+                    <a href="{% url 'buscar_videos' %}" 
+                       class="btn-youtube">
+                        <i class="fas fa-search"></i> Buscar Videos
+                    </a>
+                    <a href="{% url 'subir_video' %}" 
+                       class="btn-youtube">
+                        <i class="fas fa-upload"></i> Subir Video
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Quick Actions Bar -->
+    <div class="quick-actions">
+        <h3><i class="fas fa-bolt"></i> Acciones Rápidas</h3>
+        <div class="actions-grid">
+            <a href="{% url 'buscar_videos' %}" class="action-card">
+                <div class="action-icon">
+                    <i class="fas fa-search"></i>
+                </div>
+                <div class="action-content">
+                    <div class="action-title">Buscar Videos</div>
+                    <div class="action-description">
+                        Encuentra contenido en YouTube usando la API
+                    </div>
+                </div>
+                <i class="fas fa-arrow-right"></i>
+            </a>
+
+            <a href="{% url 'mis_videos' %}" class="action-card">
+    <div class="action-icon">
+        <i class="fas fa-bookmark"></i>
+    </div>
+    <div class="action-content">
+        <div class="action-title">Mis Videos Guardados</div>
+        <div class="action-description">
+            Accede a los videos que has guardado de YouTube
+        </div>
+    </div>
+    <i class="fas fa-arrow-right"></i>
+</a>
+            
+            <a href="{% url 'subir_video' %}" class="action-card">
+                <div class="action-icon">
+                    <i class="fas fa-upload"></i>
+                </div>
+                <div class="action-content">
+                    <div class="action-title">Subir Video</div>
+                    <div class="action-description">
+                        Sube contenido a tu canal de YouTube
+                    </div>
+                </div>
+                <i class="fas fa-arrow-right"></i>
+            </a>
+            
+            <a href="{% url 'mis_videos_subidos' %}" class="action-card">
+                <div class="action-icon">
+                    <i class="fas fa-video"></i>
+                </div>
+                <div class="action-content">
+                    <div class="action-title">Mis Videos</div>
+                    <div class="action-description">
+                        Gestiona videos subidos desde la plataforma
+                    </div>
+                </div>
+                <i class="fas fa-arrow-right"></i>
+            </a>
+            
+            <a href="{% url 'refresh_youtube_token' %}" class="action-card" onclick="return refreshToken(event)">
+                <div class="action-icon">
+                    <i class="fas fa-sync-alt"></i>
+                </div>
+                <div class="action-content">
+                    <div class="action-title">Refrescar Token</div>
+                    <div class="action-description">
+                        Renueva tu token de acceso a YouTube API
+                    </div>
+                </div>
+                <i class="fas fa-arrow-right"></i>
+            </a>
+        </div>
+    </div>
+
+    <!-- Token Status -->
+    <div class="token-status">
+        <div class="token-info">
+            <div class="token-indicator">
+                <div class="token-dot {% if token_valido %}valid{% else %}expired{% endif %}"></div>
+                <span class="fs-5">
+                    {% if token_valido %}
+                        <i class="fas fa-check-circle text-success"></i> 
+                        <strong>Token válido</strong> - Expira en {{ youtube_account.tiempo_restante_token }}
+                    {% else %}
+                        <i class="fas fa-exclamation-triangle text-danger"></i> 
+                        <strong>Token expirado</strong> - 
+                        <a href="{% url 'youtube_login' %}" class="text-decoration-none text-danger fw-bold">
+                            Reconectar con YouTube
+                        </a>
+                    {% endif %}
+                </span>
+            </div>
+            <button onclick="actualizarEstadisticas(event)" class="btn-youtube">
+                <i class="fas fa-sync-alt"></i> Actualizar Estadísticas
+            </button>
+        </div>
+    </div>
+
+    <!-- Stats Grid -->
+    <div class="stats-grid">
+        <div class="stat-card">
+            <h3>Suscriptores</h3>
+            <div class="number" id="subscribers">{{ youtube_account.suscriptores|default:"0" }}</div>
+            <div class="trend positive" id="subscribers-trend">+0 hoy</div>
+            <button onclick="actualizarEstadisticas(event)" class="btn-youtube mt-3">
+                <i class="fas fa-sync-alt"></i> Actualizar
+            </button>
+        </div>
+        
+        <div class="stat-card">
+            <h3>Videos Publicados</h3>
+            <div class="number" id="videos">{{ youtube_account.videos_publicados|default:"0" }}</div>
+            <div class="trend positive" id="videos-trend">+0 esta semana</div>
+            <button onclick="actualizarEstadisticas(event)" class="btn-youtube mt-3">
+                <i class="fas fa-sync-alt"></i> Actualizar
+            </button>
+        </div>
+        
+        <div class="stat-card">
+            <h3>Vistas Totales</h3>
+            <div class="number" id="views">{{ youtube_account.vistas_totales|default:"0" }}</div>
+            <div class="trend positive" id="views-trend">+0 hoy</div>
+            <button onclick="actualizarEstadisticas(event)" class="btn-youtube mt-3">
+                <i class="fas fa-sync-alt"></i> Actualizar
+            </button>
+        </div>
+    </div>
+
+    <!-- Videos Section -->
+    <div class="videos-section">
+        <div class="section-header">
+            <h2><i class="fas fa-video"></i> Videos Recientes</h2>
+            <div class="section-actions">
+                <a href="{% url 'buscar_videos' %}" class="btn-youtube-outline">
+                    <i class="fas fa-search"></i> Buscar Videos
+                </a>
+                <button onclick="actualizarVideos(event)" class="btn-youtube">
+                    <i class="fas fa-sync-alt"></i> Actualizar Videos
+                </button>
+            </div>
+        </div>
+
+        {% if api_error %}
+        <div class="empty-state">
+            <div style="color: #dc3545; margin-bottom: 20px; font-size: 48px;">
+                <i class="fas fa-exclamation-triangle"></i>
+            </div>
+            <h3>Error al cargar videos</h3>
+            <p>{{ api_error }}</p>
+            {% if not token_valido %}
+            <p style="margin-top: 15px;">
+                <a href="{% url 'youtube_login' %}" class="btn-youtube">
+                    <i class="fas fa-link"></i> Reconectar con YouTube
+                </a>
+            </p>
+            {% endif %}
+        </div>
+        
+        {% elif videos %}
+        <div class="video-list">
+            {% for video in videos %}
+            <div class="video-item">
+                <div class="video-thumbnail">
+                    {% if video.snippet.thumbnails and video.snippet.thumbnails.default.url %}
+                        <img src="{{ video.snippet.thumbnails.default.url }}" 
+                             alt="{{ video.snippet.title }}">
+                    {% else %}
+                        <div class="d-flex align-items-center justify-content-center h-100">
+                            <i class="fas fa-video text-muted"></i>
+                        </div>
+                    {% endif %}
+                    <div class="position-absolute bottom-0 end-0 m-2 bg-dark text-white px-2 py-1 rounded small">
+                        <i class="fas fa-play me-1"></i>Ver
+                    </div>
+                </div>
+                
+                <div class="video-content">
+                    <div>
+                        <h3 class="video-title">{{ video.snippet.title|default:"Sin título" }}</h3>
+                        <p class="video-description">{{ video.snippet.description|default:"Sin descripción" }}</p>
+                    </div>
+                    
+                    <div class="d-flex justify-content-between align-items-center mt-3">
+                        <div class="video-stats">
+                            <span class="video-stat">
+                                <i class="far fa-calendar text-muted me-1"></i>
+                                {{ video.snippet.publishedAt|slice:":10"|default:"Fecha desconocida" }}
+                            </span>
+                            <span class="video-stat">
+                                <i class="fas fa-user text-muted me-1"></i>
+                                {{ video.snippet.channelTitle|default:"Sin canal" }}
+                            </span>
+                        </div>
+                        
+                        <div class="video-actions">
+                            {% if video.id and video.id.videoId %}
+                            <a href="https://youtube.com/watch?v={{ video.id.videoId }}" 
+                               target="_blank" 
+                               class="btn-youtube btn-sm">
+                                <i class="fab fa-youtube me-1"></i> Ver en YouTube
+                            </a>
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+        
+        {% else %}
+        <div class="empty-state">
+            <div class="empty-state-icon">
+                <i class="fas fa-video-slash"></i>
+            </div>
+            <h3>No hay videos para mostrar</h3>
+            <p>Conéctate con YouTube para ver tus videos o empieza a subir contenido.</p>
+            <div class="mt-4 d-flex gap-3 justify-content-center flex-wrap">
+                {% if not token_valido %}
+                <a href="{% url 'youtube_login' %}" class="btn-youtube">
+                    <i class="fas fa-link"></i> Conectar con YouTube
+                </a>
+                {% endif %}
+                <a href="{% url 'subir_video' %}" class="btn-youtube-outline">
+                    <i class="fas fa-upload"></i> Subir mi primer video
+                </a>
+            </div>
+        </div>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+// Función para mostrar notificaciones
+function mostrarNotificacion(mensaje, tipo) {
+    // Crear elemento de notificación
+    const notificacion = document.createElement('div');
+    notificacion.className = `alert alert-${tipo} alert-dismissible fade show position-fixed`;
+    notificacion.style.cssText = `
+        position: fixed;
+        top: 80px;
+        right: 20px;
+        z-index: 9999;
+        min-width: 300px;
+        box-shadow: 0 4px 15px rgba(0,0,0,0.2);
+        animation: slideIn 0.3s ease-out;
+    `;
+    
+    notificacion.innerHTML = `
+        <div class="d-flex align-items-center">
+            <i class="fas ${tipo === 'success' ? 'fa-check-circle' : 'fa-exclamation-triangle'} me-2 fs-4"></i>
+            <div>${mensaje}</div>
+            <button type="button" class="btn-close ms-auto" data-bs-dismiss="alert"></button>
+        </div>
+    `;
+    
+    document.body.appendChild(notificacion);
+    
+    // Remover después de 3 segundos
+    setTimeout(() => {
+        if (notificacion.parentNode) {
+            const bsAlert = new bootstrap.Alert(notificacion);
+            bsAlert.close();
+        }
+    }, 3000);
+}
+
+// Función para actualizar estadísticas
+function actualizarEstadisticas(event) {
+    const boton = event.target;
+    const textoOriginal = boton.innerHTML;
+    boton.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Actualizando...';
+    boton.disabled = true;
+    
+    fetch("{% url 'youtube_estadisticas' %}")
+        .then(response => {
+            if (response.status === 401) {
+                mostrarNotificacion('Tu sesión ha expirado. Por favor, reconecta con YouTube.', 'danger');
+                setTimeout(() => {
+                    window.location.href = "{% url 'youtube_login' %}";
+                }, 2000);
+                throw new Error('Token expirado');
+            }
+            return response.json();
+        })
+        .then(data => {
+            if (data.success) {
+                // Actualizar los números en la página
+                document.getElementById('subscribers').textContent = data.suscriptores || '0';
+                document.getElementById('videos').textContent = data.videos || '0';
+                document.getElementById('views').textContent = data.vistas || '0';
+                
+                // Actualizar nombre del canal si cambió
+                if (data.nombre_canal && data.nombre_canal !== "{{ youtube_account.nombre_canal }}") {
+                    document.querySelector('.channel-text h1').textContent = data.nombre_canal;
+                }
+                
+                // Mostrar notificación de éxito
+                mostrarNotificacion('Estadísticas actualizadas correctamente', 'success');
+                
+                // Actualizar tendencias (simulado)
+                const growth = Math.floor(Math.random() * 100) + 1;
+                document.getElementById('subscribers-trend').textContent = `+${growth} hoy`;
+                
+            } else {
+                mostrarNotificacion('Error: ' + (data.error || 'Error desconocido'), 'danger');
+            }
+        })
+        .catch(error => {
+            if (error.message !== 'Token expirado') {
+                mostrarNotificacion('Error de conexión con el servidor', 'danger');
+                console.error('Error:', error);
+            }
+        })
+        .finally(() => {
+            boton.innerHTML = textoOriginal;
+            boton.disabled = false;
+        });
+}
+
+// Función para actualizar videos
+function actualizarVideos(event) {
+    const boton = event.target;
+    const textoOriginal = boton.innerHTML;
+    boton.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Actualizando...';
+    boton.disabled = true;
+    
+    mostrarNotificacion('Actualizando lista de videos...', 'info');
+    
+    // Recargar la página después de 1 segundo
+    setTimeout(() => {
+        window.location.reload();
+    }, 1000);
+}
+
+// Función para refrescar token
+function refreshToken(event) {
+    event.preventDefault();
+    
+    const link = event.target.closest('a');
+    const originalText = link.innerHTML;
+    link.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Refrescando...';
+    
+    fetch("{% url 'refresh_youtube_token' %}")
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                mostrarNotificacion('Token refrescado exitosamente', 'success');
+                setTimeout(() => {
+                    window.location.reload();
+                }, 1500);
+            } else {
+                mostrarNotificacion('Error: ' + (data.error || 'No se pudo refrescar el token'), 'danger');
+                if (data.needs_reauth) {
+                    setTimeout(() => {
+                        window.location.href = "{% url 'youtube_login' %}";
+                    }, 2000);
+                }
+            }
+        })
+        .catch(error => {
+            mostrarNotificacion('Error de conexión', 'danger');
+            console.error('Error:', error);
+        })
+        .finally(() => {
+            link.innerHTML = originalText;
+        });
+    
+    return false;
+}
+
+// Asignar eventos cuando el DOM esté listo
+document.addEventListener('DOMContentLoaded', function() {
+    // Añadir eventos a los botones de actualización
+    const botonesActualizar = document.querySelectorAll('[onclick*="actualizarEstadisticas"]');
+    botonesActualizar.forEach(boton => {
+        boton.addEventListener('click', actualizarEstadisticas);
+    });
+    
+    // Actualizar automáticamente cada 5 minutos si el token es válido
+    {% if token_valido %}
+    setInterval(() => {
+        const primerBoton = botonesActualizar[0];
+        if (primerBoton && !primerBoton.disabled) {
+            primerBoton.click();
+        }
+    }, 300000); // 5 minutos
+    {% endif %}
+    
+    // Añadir efecto hover a las action cards
+    const actionCards = document.querySelectorAll('.action-card');
+    actionCards.forEach(card => {
+        card.addEventListener('mouseenter', function() {
+            this.style.transform = 'translateY(-5px)';
+        });
+        card.addEventListener('mouseleave', function() {
+            this.style.transform = 'translateY(0)';
+        });
+    });
+});
+</script>
+{% endblock %}

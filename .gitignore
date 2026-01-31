@@ -1,0 +1,27 @@
+# Python
+__pycache__/
+*.py[cod]
+*.so
+venv/
+ENV/
+
+# Django
+*.log
+db.sqlite3
+/media
+/staticfiles
+
+# YouTube Credentials (CRÍTICO)
+client_secret.json
+token.pickle
+*.json
+!client_secrets_TEMPLATE.json
+
+# IDE
+.vscode/
+.idea/
+.env
+
+# OS
+.DS_Store
+Thumbs.db
